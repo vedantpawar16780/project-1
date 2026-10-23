@@ -1,5 +1,6 @@
 /* Campusly demo app. Data is saved in this browser with localStorage. */
 const STORE_KEY = 'campusly-demo-v1';
+const THEME_KEY = 'campusly-theme';
 const today = new Date();
 const iso = (d) => { const x = new Date(d); x.setMinutes(x.getMinutes()-x.getTimezoneOffset()); return x.toISOString().slice(0,10); };
 const plusDays = (n) => { const d = new Date(); d.setDate(d.getDate()+n); return iso(d); };
@@ -22,6 +23,7 @@ const defaults = {
 let data; try { data=JSON.parse(localStorage.getItem(STORE_KEY)) || structuredClone(defaults); } catch { data=structuredClone(defaults); }
 const $ = (s) => document.querySelector(s); const $$ = (s) => [...document.querySelectorAll(s)];
 const save = () => localStorage.setItem(STORE_KEY,JSON.stringify(data));
+function setTheme(theme){document.documentElement.dataset.theme=theme;const dark=theme==='dark';const button=$('#theme-toggle');button.textContent=dark?'☀':'☾';button.setAttribute('aria-label',`Switch to ${dark?'light':'dark'} mode`);button.title=`Switch to ${dark?'light':'dark'} mode`;button.setAttribute('aria-pressed',String(dark));document.querySelector('meta[name="theme-color"]').content=dark?'#171c19':'#f7f7f3';localStorage.setItem(THEME_KEY,theme);}
 const esc = (s='') => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const niceDate = (v,opts={weekday:'short',month:'short',day:'numeric'}) => new Date(`${v}T12:00:00`).toLocaleDateString(undefined,opts);
 const todayISO=iso(today); let monthCursor=new Date(today.getFullYear(),today.getMonth(),1); let selectedDate=todayISO; let filter='all';
@@ -42,7 +44,7 @@ function render(){const logged=Boolean(data.loggedIn);$('#login-screen').hidden=
 function go(view){$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${view}`));$$('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.view===view));const labels={home:'Overview',tasks:'My tasks',calendar:'Calendar',events:'Campus events',attendance:'Attendance',admin:'Campus desk'};$('#crumb').textContent=labels[view]||'Overview';$('.sidebar').classList.remove('open');window.scrollTo({top:0,behavior:'smooth'});}
 function openTaskModal(){if(data.role==='admin')toast('Adding a task for your campus.');$('#modal-title').textContent='Add a task';$('#modal-eyebrow').textContent=data.role==='admin'?'SHARE WITH STUDENTS':'MAKE IT HAPPEN';$('#task-name').value='';$('#task-date').value=plusDays(3);$('#task-type').value='Assignment';$('#task-link').value='';$('#modal-backdrop').classList.remove('hidden');$('#task-name').focus();}
 function addEvent(){const name=prompt('Event name?');if(!name?.trim())return;const date=prompt('Event date (YYYY-MM-DD):',plusDays(5));if(!date||!/^\d{4}-\d{2}-\d{2}$/.test(date))return toast('Please use a date like 2026-10-29.');const place=prompt('Where is it happening?','Campus courtyard')||'Campus';const time=prompt('What time?','4:00 PM')||'Time to be announced';data.events.push({id:crypto.randomUUID(),name:name.trim(),date,place,time,type:'Campus event',emoji:'✳'});save();render();toast('Event added to the campus calendar.');}
-updateDateLabels();render();
+setTheme(localStorage.getItem(THEME_KEY)==='dark'?'dark':'light');updateDateLabels();render();
 $$('.nav-item').forEach(b=>b.addEventListener('click',()=>go(b.dataset.view)));
 $$('[data-goto]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.goto)));
 let selectedLoginRole='student';$$('[data-login-role]').forEach(b=>b.addEventListener('click',()=>{selectedLoginRole=b.dataset.loginRole;$$('[data-login-role]').forEach(x=>x.classList.toggle('selected',x===b));}));
@@ -58,3 +60,4 @@ $('#calculate-btn').addEventListener('click',()=>{const a=Number($('#classes-att
 $('#submit-attendance').addEventListener('click',()=>{const pct=attendance();data.requests.push({id:crypto.randomUUID(),student:'Aarav Mehta',attended:data.attendance.attended,total:data.attendance.total,pct,status:'pending',when:new Date().toLocaleDateString()});save();renderRequests();$('#request-status').textContent='Your verification request is waiting for teacher/admin review.';toast('Verification request sent in this demo.');});
 $('#notifications-btn').addEventListener('click',()=>toast('You are all caught up. Reminders are shown in this demo app.'));
 $('#mobile-menu').addEventListener('click',()=>$('.sidebar').classList.toggle('open'));
+$('#theme-toggle').addEventListener('click',()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark'));
